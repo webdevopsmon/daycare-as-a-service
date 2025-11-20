@@ -1,0 +1,58 @@
+services:
+  db:
+    image: mariadb:latest
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    restart: always
+    volumes:
+      - ${DATA_PATH}/db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${SQL_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=${SQL_PASSWORD}
+      - MYSQL_DATABASE=${SQL_DB}
+      - MYSQL_USER=${SQL_DB_USER}
+
+  redis:
+    image: redis:alpine
+    restart: always
+
+  app:
+    image: nextcloud:latest
+    restart: always
+    ports:
+    # use this if you are using a vm:
+    #  - 9001:80
+    # use this if you are exposing on your root server:
+    #  - 127.0.0.1:9001:80
+
+    volumes:
+      - nextcloud:/var/www/html:z
+    environment:
+      - REDIS_HOST=redis
+      - MYSQL_PASSWORD=${SQL_PASSWORD}
+      - MYSQL_DATABASE=${SQL_DB}
+      - MYSQL_USER=${SQL_DB_USER}
+      - MYSQL_HOST=db
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${DOMAIN_NAME}
+      - PHP_UPLOAD_LIMIT=10G
+      - OVERWRITEPROTOCOL=https
+      - OVERWRITE.CLI.URL=${DOMAIN_NAME}
+    depends_on:
+      - db
+      - redis
+
+  cron:
+    image: nextcloud:apache
+    restart: always
+    volumes:
+      - nextcloud:/var/www/html:z
+    entrypoint: /cron.sh
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  db:
+  nextcloud:
+
