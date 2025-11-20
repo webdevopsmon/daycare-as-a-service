@@ -42,10 +42,10 @@ services:
       # directory as this compose config file.
       - /opt/zw-stage/bookstack/config:/config
     ports:
-      # This exposes port 6875 for general web access.
-      # Commonly you'd have a reverse proxy in front of this,
-      # redirecting incoming requests to this port.
-      - 6875:80
+      # use this if you are using a vm:
+      # - 6875:80
+      # use this if you are exposing on your root server:
+      # - 127.0.0.1:6875:80
     restart: unless-stopped
     depends_on:
       bookstackdb:
