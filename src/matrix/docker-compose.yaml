@@ -1,0 +1,43 @@
+services:
+  synapse:
+    image: matrixdotorg/synapse:latest
+    container_name: synapse
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    volumes:
+      - "./data:/data"
+    environment:
+      - SYNAPSE_SERVER_NAME=my.full-domain.tld
+      - SYNAPSE_REPORT_STATS=no
+      - SYNAPSE_CONFIG_DIR=./data
+      - SYNAPSE_CONFIG_PATH=./data/homeserver.yaml
+      - POSTGRES_DB=synapse
+      - POSTGRES_USER=synapse
+      - POSTGRES_PASSWORD=supersecretpassword
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+    ports:
+      # use this if you are using a vm:
+      # - 5588:8008
+      # use this if you are exposing on your root server:
+      # - 127.0.0.1:5588:8008
+    networks:
+      - matrix_net
+
+  postgres:
+    image: postgres:15
+    container_name: synapse_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: synapse
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: supersecretpassword
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+    networks:
+      - matrix_net
+
+networks:
+  matrix_net:
+    external: false
