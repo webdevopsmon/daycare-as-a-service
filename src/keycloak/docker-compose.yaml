@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.0
+    restart: unless-stopped
+    command:
+      - start
+      - --hostname=https://your.domain.tld
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # this is the important flag that allows keycloak to live behind a reverse proxy
+      KC_PROXY: edge
+      KC_PROXY_HEADÈRS: xforwarded
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HTTP_ENABLED: 'true'
+      KC_HOSTNAME_STRICT: 'true'
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+
+    ports:
+      # use this if you are using a vm:
+      # - 6688:8080
+      # use this if you are exposing on your root server:
+      # - 127.0.0.1:6688:8080
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+
+
