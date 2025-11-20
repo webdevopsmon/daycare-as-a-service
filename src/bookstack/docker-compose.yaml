@@ -1,0 +1,93 @@
+# ENSURE YOU PAY ATTENTION TO ALL COMMENTS BELOW.
+# Many of the values are just examples, and you WILL
+# have to make changes to suit your environment.
+
+# For non-commented options, refer to the linuxserver documentation:
+# https://docs.linuxserver.io/images/docker-bookstack/#environment-variables-e
+
+services:
+
+  # The container for BookStack itself
+  bookstack:
+    # You should update the version here to match the latest
+    # release of BookStack: https://github.com/BookStackApp/BookStack/releases
+    # You'll change this when wanting to update the version of BookStack used.
+    image: lscr.io/linuxserver/bookstack:latest
+    container_name: bookstack
+    env_file:
+      .env.bookstack
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      # APP_URL must be set as the base URL you'd expect to access BookStack
+      # on via the browser. The default shown here is what you might use if accessing
+      # direct from the browser on the docker host, hence the use of the port as configured below.
+      - APP_URL=https://your.domain.tld
+      # APP_KEY must be a unique key. Generate your own by running
+      # docker run -it --rm --entrypoint /bin/bash lscr.io/linuxserver/bookstack:latest appkey
+      # You should keep the "base64:" part for the option value.
+      - APP_KEY=base64:secretBase64Key
+
+      # The below database details are purposefully aligned with those
+      # configuted for the "mariadb" service below:
+      - DB_HOST=bookstackdb
+      - DB_PORT=3306
+      - DB_DATABASE=bookstack
+      - DB_USERNAME=bookstack
+      - DB_PASSWORD=super-secretpassword
+    volumes:
+      # You generally only ever need to map this one volume.
+      # This maps it to a "bookstack_app_data" folder in the same
+      # directory as this compose config file.
+      - /opt/zw-stage/bookstack/config:/config
+    ports:
+      # This exposes port 6875 for general web access.
+      # Commonly you'd have a reverse proxy in front of this,
+      # redirecting incoming requests to this port.
+      - 6875:80
+    restart: unless-stopped
+    depends_on:
+      bookstackdb:
+        condition:
+           service_healthy
+
+  # The container for the database which BookStack will use to store
+  # most of its core data/content.
+  bookstackdb:
+    # You should update the version here to match the latest
+    # main version of the linuxserver mariadb container version:
+    # https://github.com/linuxserver/docker-mariadb/pkgs/container/mariadb/versions?filters%5Bversion_type%5D=tagged
+    image: lscr.io/linuxserver/mariadb:latest
+    container_name: bookstackdb
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      # You may want to change the credentials used below,
+      # but be aware the latter three options need to align
+      # with the DB_* options for the BookStack container.
+      - MYSQL_ROOT_PASSWORD=adminpassw0rd
+      - MYSQL_DATABASE=bookstack
+      - MYSQL_USER=bookstack
+      - MYSQL_PASSWORD=super-secretpassword
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -padminpassw0rd || exit 1"]
+      start_period: 20s
+      timeout: 5s
+      interval: 10s
+      retries: 5
+    volumes:
+      # You generally only ever need to map this one volume.
+      # This maps it to a "bookstack_db_data" folder in the same
+      # directory as this compose config file.
+      - /opt/zw-stage/bookstack/db_data:/config
+
+    # These ports are commented out as you don't really need this port
+    # exposed for normal use, mainly only if connecting direct the the
+    # database externally. Otherwise, this risks exposing access to the
+    # database when not needed.
+    # ports:
+    #   - 3306:3306
+    restart: unless-stopped
+
